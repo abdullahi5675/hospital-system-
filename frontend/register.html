@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Citizen's Clinic EMR</title>
+  <meta name="description" content="Create your account on Citizen's Clinic EMR system as a Patient, Doctor, or Administrator.">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Extra transitions for dynamic fields */
+    .dynamic-field {
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease, margin 0.3s ease;
+      max-height: 200px;
+      opacity: 1;
+    }
+    .dynamic-field.field-hidden {
+      max-height: 0 !important;
+      opacity: 0;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      display: block !important; /* override display:none to allow animation */
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="auth-body">
+
+  <div class="auth-card wide">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🏥</div>
+      <h2>Create Your Account</h2>
+      <p id="register-subtitle">Join Citizen's Clinic Patient Portal</p>
+    </div>
+
+    <form class="auth-form" id="register-form">
+
+      <!-- Role Selector (always visible first) -->
+      <div class="form-group">
+        <label for="role">Register As</label>
+        <select id="role" required>
+          <option value="Patient">Patient</option>
+          <option value="Doctor">Doctor</option>
+          <option value="Admin">Administrator</option>
+        </select>
+      </div>
+
+      <div class="role-divider">Account Details</div>
+
+      <!-- Common Fields -->
+      <div class="register-grid">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="e.g. John Doe" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="john@example.com" required>
+        </div>
+        <div class="form-group full-span">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Min. 6 characters" required minlength="6">
+        </div>
+      </div>
+
+      <!-- Patient / Admin: Gender -->
+      <div class="register-grid" id="patient-fields-1">
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select id="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="mobile_no">Mobile Number</label>
+          <input type="tel" id="mobile_no" placeholder="0801 234 5678">
+        </div>
+      </div>
+
+      <!-- Patient only: City / Address -->
+      <div class="register-grid dynamic-field" id="patient-fields-2">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input type="text" id="city" placeholder="e.g. Lagos">
+        </div>
+        <div class="form-group">
+          <label for="address">Home Address</label>
+          <input type="text" id="address" placeholder="12 Baker Street, Ikeja">
+        </div>
+      </div>
+
+      <!-- Doctor only: Education / Experience -->
+      <div class="register-grid dynamic-field field-hidden" id="doctor-fields">
+        <div class="form-group full-span">
+          <label for="education">Education / Qualifications</label>
+          <input type="text" id="education" placeholder="e.g. MBBS, MD Cardiology">
+        </div>
+        <div class="form-group full-span">
+          <label for="experience">Experience</label>
+          <input type="text" id="experience" placeholder="e.g. 10 Years in Cardiology Practice">
+        </div>
+      </div>
+
+      <!-- Admin / Doctor only: Invitation Code -->
+      <div class="form-group dynamic-field field-hidden" id="invitation-field">
+        <label for="invitationCode">Invitation Code</label>
+        <input type="password" id="invitationCode" placeholder="Enter your invitation code">
+      </div>
+
+      <button type="submit" class="btn-primary auth-submit" id="submit-btn">
+        Create Patient Account
+      </button>
+    </form>
+
+    <div class="auth-divider mt-2">
+      Already have an account? <a href="login.html">Sign In</a>
+    </div>
+  </div>
+
+  <div id="status-banner" class="banner"></div>
+
+  <script src="js/app.js"></script>
+  <script>
+    const roleSelect = document.getElementById('role');
+    const submitBtn  = document.getElementById('submit-btn');
+    const subtitle   = document.getElementById('register-subtitle');
+
+    const patientFields2  = document.getElementById('patient-fields-2');
+    const doctorFields    = document.getElementById('doctor-fields');
+    const invitationField = document.getElementById('invitation-field');
+
+    const labels = {
+      Patient: { subtitle: 'Join Citizen\'s Clinic Patient Portal', btn: 'Create Patient Account' },
+      Doctor:  { subtitle: 'Register as a Medical Doctor',          btn: 'Create Doctor Account'  },
+      Admin:   { subtitle: 'Register as System Administrator',      btn: 'Create Admin Account'   }
+    };
+
+    function updateFormForRole(role) {
+      const info = labels[role];
+      subtitle.textContent     = info.subtitle;
+      submitBtn.textContent    = info.btn;
+
+      if (role === 'Doctor') {
+        patientFields2.classList.add('field-hidden');
+        doctorFields.classList.remove('field-hidden');
+        invitationField.classList.remove('field-hidden');
+        document.getElementById('invitationCode').required = true;
+        document.getElementById('mobile_no').placeholder  = '0801 234 5678';
+      } else if (role === 'Admin') {
+        patientFields2.classList.add('field-hidden');
+        doctorFields.classList.add('field-hidden');
+        invitationField.classList.remove('field-hidden');
+        document.getElementById('invitationCode').required = true;
+      } else {
+        // Patient
+        patientFields2.classList.remove('field-hidden');
+        doctorFields.classList.add('field-hidden');
+        invitationField.classList.add('field-hidden');
+        document.getElementById('invitationCode').required = false;
+        document.getElementById('invitationCode').value    = '';
+      }
+    }
+
+    roleSelect.addEventListener('change', () => updateFormForRole(roleSelect.value));
+    updateFormForRole('Patient'); // default
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const role = roleSelect.value;
+
+      const payload = {
+        name:           document.getElementById('name').value.trim(),
+        email:          document.getElementById('email').value.trim(),
+        password:       document.getElementById('password').value,
+        role:           role,
+        gender:         document.getElementById('gender').value,
+        mobile_no:      document.getElementById('mobile_no').value.trim(),
+        city:           document.getElementById('city').value.trim(),
+        address:        document.getElementById('address').value.trim(),
+        education:      document.getElementById('education').value.trim(),
+        experience:     document.getElementById('experience').value.trim(),
+        invitationCode: document.getElementById('invitationCode').value.trim()
+      };
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Creating account…';
+
+      try {
+        const res  = await fetch('/api/auth/register', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showNotification(`${role} account created! Redirecting to login…`);
+          setTimeout(() => window.location.href = 'login.html', 1400);
+        } else {
+          showNotification(data.message || 'Registration failed.', true);
+          submitBtn.disabled    = false;
+          submitBtn.textContent = labels[role].btn;
+        }
+      } catch (err) {
+        showNotification(err.message, true);
+        submitBtn.disabled    = false;
+        submitBtn.textContent = labels[role].btn;
+      }
+    });
+  </script>
+</body>
+</html>

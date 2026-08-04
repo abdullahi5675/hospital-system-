@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Doctors — Clinic EMR</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">Clinic EMR <span>Admin Panel</span></div>
+      <button class="sidebar-close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li class="active"><a href="doctors.html">Manage Doctors</a></li>
+      <li><a href="add_doctor.html">Add Doctor</a></li>
+      <li><a href="patients.html">Manage Patients</a></li>
+      <li><a href="add_patient.html">Add Patient</a></li>
+      <li><a href="view_patients.html">Registry Directory</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-badge"><span class="user-name">Loading…</span><span class="user-role">Administrator</span></div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <div class="topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title">Doctors Directory</span>
+    <div class="topbar-right">
+      <span class="topbar-role-badge">Admin</span>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="page-header">
+      <div class="page-title"><h1>Doctors Directory</h1><p>View, edit and remove clinic medical consultants</p></div>
+      <a href="add_doctor.html" class="btn-primary">+ Add Doctor</a>
+    </div>
+
+    <div class="card-section">
+      <div class="search-bar">
+        <input type="text" id="doc-search" placeholder="Search by name or specialization…" oninput="filterDoctors()">
+      </div>
+      <div class="table-wrapper">
+        <table id="doctors-table">
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Education</th><th>Experience</th><th>Actions</th></tr></thead>
+          <tbody><tr><td colspan="7" class="text-center text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="status-banner" class="banner"></div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal">
+  <div class="modal-content">
+    <h2>Edit Doctor</h2>
+    <form id="edit-form">
+      <input type="hidden" id="edit-id">
+      <div class="form-group" style="margin-bottom:12px;"><label>Full Name</label><input type="text" id="edit-name" required></div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Mobile</label><input type="text" id="edit-phone"></div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Education</label><input type="text" id="edit-edu"></div>
+      <div class="form-group" style="margin-bottom:16px;"><label>Experience</label><textarea id="edit-exp"></textarea></div>
+      <div class="btn-group">
+        <button type="button" class="btn-secondary" onclick="closeModal('edit-modal')">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+let doctors = [];
+async function init() {
+  await checkAuth(['Admin']);
+  const res  = await fetch('/api/doctors');
+  const data = await res.json();
+  if (data.success) { doctors = data.doctors; renderDoctors(doctors); }
+}
+function renderDoctors(list) {
+  const body = document.querySelector('#doctors-table tbody');
+  body.innerHTML = list.length === 0 ? '<tr><td colspan="7" class="text-center text-muted">No doctors found.</td></tr>' : '';
+  list.forEach(d => {
+    body.innerHTML += `<tr>
+      <td>#${d.user_id}</td><td><strong>${d.name}</strong></td><td>${d.email}</td>
+      <td>${d.mobile_no||'–'}</td><td>${d.education||'–'}</td><td>${d.experience||'–'}</td>
+      <td><div class="actions-wrapper">
+        <button class="btn-action primary" onclick='openEdit(${JSON.stringify(d)})'>Edit</button>
+        <button class="btn-action disapprove" onclick="deleteDoc(${d.user_id})">Delete</button>
+      </div></td></tr>`;
+  });
+}
+function filterDoctors() {
+  const q = document.getElementById('doc-search').value.toLowerCase();
+  renderDoctors(doctors.filter(d => d.name.toLowerCase().includes(q) || (d.education||'').toLowerCase().includes(q)));
+}
+function openEdit(d) {
+  document.getElementById('edit-id').value   = d.user_id;
+  document.getElementById('edit-name').value = d.name;
+  document.getElementById('edit-phone').value = d.mobile_no||'';
+  document.getElementById('edit-edu').value   = d.education||'';
+  document.getElementById('edit-exp').value   = d.experience||'';
+  openModal('edit-modal');
+}
+document.getElementById('edit-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('edit-id').value;
+  const res = await fetch(`/api/doctors/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name:document.getElementById('edit-name').value, mobile_no:document.getElementById('edit-phone').value,
+      education:document.getElementById('edit-edu').value, experience:document.getElementById('edit-exp').value }) });
+  const data = await res.json();
+  showNotification(data.message, !data.success);
+  if (data.success) { closeModal('edit-modal'); init(); }
+});
+async function deleteDoc(id) {
+  if (!confirm('Remove this doctor?')) return;
+  const res = await fetch(`/api/doctors/${id}`, {method:'DELETE'});
+  const data= await res.json();
+  showNotification(data.message, !data.success);
+  if (data.success) init();
+}
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.onload = init;
+</script>
+</body>
+</html>

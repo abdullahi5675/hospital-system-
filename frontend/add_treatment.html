@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Consultation — Clinic EMR</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">Clinic EMR <span>Doctor Panel</span></div>
+      <button class="sidebar-close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="doctor.html">Dashboard</a></li>
+      <li class="active"><a href="patients.html">Patients Directory</a></li>
+      <li><a href="view_patients.html">Registry Directory</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-badge"><span class="user-name">Loading…</span><span class="user-role">Medical Consultant</span></div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <div class="topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="topbar-title">Log Consultation</span>
+    <div class="topbar-right">
+      <span class="topbar-role-badge">Doctor</span>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div class="page-title">
+        <h1>Log Consultation Encounter</h1>
+        <p>Record medical diagnostics and treatment specifications for a patient file</p>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h2 id="patient-name-header">Consultation Form</h2>
+      <form id="consultation-form">
+        <input type="hidden" id="patient_id">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="diagnosis">Medical Diagnosis / Notes</label>
+          <textarea id="diagnosis" placeholder="Describe clinical discoveries, patient presenting symptoms, or confirmed illness..." required></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:24px;">
+          <label for="treatment">Recommended Treatment Plan</label>
+          <textarea id="treatment" placeholder="Describe therapy, bed rest, surgical recommendations, or general writeups..."></textarea>
+        </div>
+        <div class="btn-group">
+          <button type="submit" class="btn-primary">Save Consultation Note</button>
+          <button type="button" class="btn-secondary" id="btn-cancel">Back to Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="status-banner" class="banner"></div>
+
+<script src="js/app.js"></script>
+<script>
+  let patientId = null;
+
+  async function initPage() {
+    await checkAuth(['Doctor']);
+    const urlParams = new URLSearchParams(window.location.search);
+    patientId = urlParams.get('id');
+    if (!patientId) {
+      showNotification('Patient ID missing.', true);
+      setTimeout(() => { window.location.href = 'patients.html'; }, 1500);
+      return;
+    }
+    document.getElementById('patient_id').value = patientId;
+    try {
+      const res  = await fetch(`/api/patients/${patientId}/profile`);
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('patient-name-header').textContent = `Log Consultation for: ${data.profile.name}`;
+      }
+    } catch (err) { console.error(err); }
+    document.getElementById('btn-cancel').onclick = () => window.location.href = `patient_profile.html?id=${patientId}`;
+  }
+
+  document.getElementById('consultation-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      patient_id: parseInt(document.getElementById('patient_id').value),
+      diagnosis:  document.getElementById('diagnosis').value,
+      treatment:  document.getElementById('treatment').value
+    };
+    try {
+      const res  = await fetch('/api/patients/emr/consultations', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification(data.message);
+        setTimeout(() => { window.location.href = `patient_profile.html?id=${patientId}`; }, 1000);
+      } else { showNotification(data.message, true); }
+    } catch (err) { showNotification(err.message, true); }
+  });
+
+  window.onload = initPage;
+</script>
+</body>
+</html>

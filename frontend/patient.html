@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Dashboard — Clinic EMR</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">Clinic EMR <span>Patient Portal</span></div>
+      <button class="sidebar-close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li class="active"><a href="patient.html">My Dashboard</a></li>
+      <li><a href="patient_profile.html">My EMR File</a></li>
+      <li><a href="book_appointment.html">Book Appointment</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-badge"><span class="user-name">Loading…</span><span class="user-role">Patient</span></div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <div class="topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title">My Health Dashboard</span>
+    <div class="topbar-right">
+      <span class="topbar-role-badge">Patient</span>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="page-header">
+      <div class="page-title"><h1>Patient Portal</h1><p>View appointments, prescriptions and bed allocations</p></div>
+      <button class="btn-primary" onclick="window.location.href='book_appointment.html'">+ Book Appointment</button>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-icon">📅</div><div class="metric-label">My Appointments</div><div class="metric-value" id="stat-appt">–</div></div>
+      <div class="metric-card"><div class="metric-icon">💊</div><div class="metric-label">Prescriptions</div><div class="metric-value" id="stat-rx">–</div></div>
+    </div>
+
+    <div class="card-section">
+      <h2>My Appointment History</h2>
+      <div class="table-wrapper">
+        <table id="appts-table">
+          <thead><tr><th>#</th><th>Type</th><th>Assigned Doctor</th><th>Scheduled Date</th><th>Time</th><th>Status</th><th>Note</th></tr></thead>
+          <tbody><tr><td colspan="7" class="text-center text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h2>Bed Allocation History</h2>
+      <div class="table-wrapper">
+        <table id="alloc-table">
+          <thead><tr><th>Bed</th><th>Ward / Room</th><th>Admitted</th><th>Status</th></tr></thead>
+          <tbody><tr><td colspan="4" class="text-center text-muted">No allocations recorded.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="status-banner" class="banner"></div>
+<script src="js/app.js"></script>
+<script>
+async function initDashboard() {
+  await checkAuth(['Patient']);
+  try {
+    const res  = await fetch('/api/dashboard');
+    const data = await res.json();
+    if (!data.success) return showNotification('Failed to load dashboard.', true);
+
+    document.getElementById('stat-appt').textContent = data.stats.myPending;
+    document.getElementById('stat-rx').textContent   = data.stats.myPrescriptions;
+
+    const apptBody = document.querySelector('#appts-table tbody');
+    apptBody.innerHTML = '';
+    if (!data.appointments.length) {
+      apptBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No appointments yet. Book one!</td></tr>';
+    } else {
+      data.appointments.forEach(a => {
+        const sc = `badge ${a.status.toLowerCase()}`;
+        const doctor   = a.doctor_name ? `<strong>Dr. ${a.doctor_name}</strong>` : '<span style="color:var(--warning);font-style:italic;">Pending admin</span>';
+        const dateStr  = a.appointment_date ? new Date(a.appointment_date).toDateString() : '<span style="color:var(--warning);font-style:italic;">TBA</span>';
+        const timeStr  = a.appointment_time || '<span style="color:var(--warning);font-style:italic;">TBA</span>';
+        apptBody.innerHTML += `<tr><td>#${a.appointment_id}</td><td>${a.appointment_type||'Regular'}</td>
+          <td>${doctor}</td><td>${dateStr}</td>
+          <td>${timeStr}</td><td><span class="${sc}">${a.status}</span></td>
+          <td><small style="color:#dc2626;">${a.disapprove_reason||''}</small></td></tr>`;
+      });
+    }
+
+    const allocBody = document.querySelector('#alloc-table tbody');
+    allocBody.innerHTML = '';
+    if (!data.allocations || !data.allocations.length) {
+      allocBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No allocations recorded.</td></tr>';
+    } else {
+      data.allocations.forEach(al => {
+        const sc = `badge ${al.alloc_status.toLowerCase()}`;
+        allocBody.innerHTML += `<tr><td><strong>${al.bed_number}</strong></td>
+          <td>${al.ward_name} (${al.room||'General'})</td>
+          <td>${new Date(al.allocated_at).toLocaleString()}</td>
+          <td><span class="${sc}">${al.alloc_status}</span></td></tr>`;
+      });
+    }
+  } catch (err) { showNotification(err.message, true); }
+}
+window.onload = initDashboard;
+</script>
+</body>
+</html>

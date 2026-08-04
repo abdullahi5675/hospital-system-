@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Room & Beds — Clinic EMR</title>
+  <meta name="description" content="Admin: Add a new ward room and specify the number of beds to create.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">Clinic EMR <span>Admin Panel</span></div>
+      <button class="sidebar-close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="doctors.html">Manage Doctors</a></li>
+      <li><a href="add_doctor.html">Add Doctor</a></li>
+      <li><a href="patients.html">Manage Patients</a></li>
+      <li><a href="add_patient.html">Add Patient</a></li>
+      <li class="active"><a href="add_room.html">Add Room / Beds</a></li>
+      <li><a href="view_patients.html">Registry Directory</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-badge"><span class="user-name">Loading…</span><span class="user-role">Administrator</span></div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <div class="topbar">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="topbar-title">Room & Bed Management</span>
+    <div class="topbar-right">
+      <span class="topbar-role-badge">Admin</span>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div class="page-title">
+        <h1>Add Room & Beds</h1>
+        <p>Create a new ward room and automatically generate the specified number of beds</p>
+      </div>
+    </div>
+
+    <!-- Add Room Form -->
+    <div class="card-section">
+      <h2>New Room Form</h2>
+      <form id="room-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="ward_name">Ward Name</label>
+            <select id="ward_name" required>
+              <option value="">— Select or type below —</option>
+              <option value="ICU">ICU (Intensive Care Unit)</option>
+              <option value="General Ward A">General Ward A</option>
+              <option value="General Ward B">General Ward B</option>
+              <option value="Pediatric Ward">Pediatric Ward</option>
+              <option value="Maternity Ward">Maternity Ward</option>
+              <option value="Surgical Ward">Surgical Ward</option>
+              <option value="Emergency Ward">Emergency Ward</option>
+              <option value="Isolation Ward">Isolation Ward</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ward_custom">Or Enter Custom Ward Name</label>
+            <input type="text" id="ward_custom" placeholder="e.g. Cardiology Ward">
+          </div>
+          <div class="form-group">
+            <label for="room">Room / Block Name</label>
+            <input type="text" id="room" placeholder="e.g. Room 10 or Block B" required>
+          </div>
+          <div class="form-group">
+            <label for="bed_count">Number of Beds</label>
+            <input type="number" id="bed_count" placeholder="e.g. 6" min="1" max="50" required>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button type="submit" class="btn-primary" id="submit-btn">➕ Add Room & Beds</button>
+          <button type="button" class="btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Existing Rooms Table -->
+    <div class="card-section">
+      <h2>Existing Wards & Rooms</h2>
+      <div class="table-wrapper">
+        <table id="rooms-table">
+          <thead>
+            <tr>
+              <th>Ward Name</th>
+              <th>Room / Block</th>
+              <th>Total Beds</th>
+              <th>Available</th>
+              <th>Occupied</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="5" class="text-center text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Result preview after adding -->
+    <div class="card-section" id="result-section" style="display:none;">
+      <h2>✅ Beds Created</h2>
+      <div class="table-wrapper">
+        <table id="result-table">
+          <thead><tr><th>Bed Number</th><th>Ward</th><th>Room</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="status-banner" class="banner"></div>
+
+<script src="js/app.js"></script>
+<script>
+async function initPage() {
+  await checkAuth(['Admin']);
+  await loadRooms();
+}
+
+async function loadRooms() {
+  try {
+    const res  = await fetch('/api/rooms');
+    const data = await res.json();
+    const body = document.querySelector('#rooms-table tbody');
+    body.innerHTML = '';
+    if (!data.success || !data.rooms.length) {
+      body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No rooms added yet.</td></tr>';
+      return;
+    }
+    data.rooms.forEach(r => {
+      body.innerHTML += `<tr>
+        <td><strong>${r.ward_name}</strong></td>
+        <td>${r.room}</td>
+        <td>${r.total_beds}</td>
+        <td><span class="badge available">${r.available}</span></td>
+        <td><span class="badge occupied">${r.occupied}</span></td>
+      </tr>`;
+    });
+  } catch (err) { showNotification(err.message, true); }
+}
+
+document.getElementById('room-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = document.getElementById('submit-btn');
+
+  // Use custom ward name if provided, otherwise use dropdown
+  const ward_name = document.getElementById('ward_custom').value.trim()
+    || document.getElementById('ward_name').value;
+  const room      = document.getElementById('room').value.trim();
+  const bed_count = parseInt(document.getElementById('bed_count').value);
+
+  if (!ward_name) {
+    showNotification('Please select or enter a ward name.', true);
+    return;
+  }
+
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Adding beds…';
+
+  try {
+    const res  = await fetch('/api/rooms', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ ward_name, room, bed_count })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showNotification(data.message);
+      // Show created beds preview
+      const section = document.getElementById('result-section');
+      const body    = document.querySelector('#result-table tbody');
+      section.style.display = 'block';
+      body.innerHTML = '';
+      data.beds.forEach(b => {
+        body.innerHTML += `<tr>
+          <td><strong>${b.bed_number}</strong></td>
+          <td>${b.ward_name}</td>
+          <td>${b.room}</td>
+          <td><span class="badge available">Available</span></td>
+        </tr>`;
+      });
+      // Refresh existing rooms list
+      await loadRooms();
+      // Reset form
+      document.getElementById('room-form').reset();
+    } else {
+      showNotification(data.message, true);
+    }
+  } catch (err) {
+    showNotification(err.message, true);
+  } finally {
+    submitBtn.disabled    = false;
+    submitBtn.textContent = '➕ Add Room & Beds';
+  }
+});
+
+window.onload = initPage;
+</script>
+</body>
+</html>
