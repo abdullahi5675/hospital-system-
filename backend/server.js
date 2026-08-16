@@ -21,7 +21,12 @@ app.use(session({
   }
 }));
 
-// Route static files
+// Serve landing page at root URL — must be BEFORE express.static
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index-landing.html'));
+});
+
+// Serve all other static files (css, js, html pages)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Primary API route boundary
