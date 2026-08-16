@@ -114,6 +114,32 @@ exports.logout = (req, res) => {
   });
 };
 
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    // Check the email exists
+    const user = await db.query('SELECT user_id FROM users WHERE email = $1', [email]);
+    if (user.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'No account found with that email address.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
+
+    await db.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hash, email]);
+
+    return res.status(200).json({ success: true, message: 'Password updated successfully. You can now sign in.' });
+  } catch (error) { next(error); }
+};
+
+
 // 2. Dashboard Controllers (Authenticated & Role-aware)
 exports.getDashboardData = async (req, res, next) => {
   try {

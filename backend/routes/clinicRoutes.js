@@ -4,10 +4,12 @@ const clinicController = require('../controllers/clinicController');
 const { requireLogin, requireRole } = require('../middleware/auth');
 
 // Auth routes (Public)
-router.post('/auth/login', clinicController.login);
-router.post('/auth/register', clinicController.register);
-router.get('/auth/me', clinicController.getCurrentUser);
-router.post('/auth/logout', clinicController.logout);
+router.post('/auth/login',          clinicController.login);
+router.post('/auth/register',       clinicController.register);
+router.get('/auth/me',              clinicController.getCurrentUser);
+router.post('/auth/logout',         clinicController.logout);
+router.post('/auth/reset-password', clinicController.resetPassword);
+
 
 // Common Dashboard (Role-aware inside controller)
 router.get('/dashboard', requireLogin, clinicController.getDashboardData);

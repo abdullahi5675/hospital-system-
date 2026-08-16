@@ -5,6 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Citizen's Clinic EMR</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Eye toggle button */
+    .password-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-wrap input {
+      padding-right: 44px;
+    }
+    .eye-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-400, #94a3b8);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--primary, #0d9488); }
+
+    /* Forgot password link */
+    .forgot-link {
+      text-align: right;
+      margin-top: -4px;
+      margin-bottom: 4px;
+    }
+    .forgot-link a {
+      font-size: 13px;
+      color: var(--primary, #0d9488);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    .forgot-link a:hover { opacity: 0.75; }
+
+    /* Reset password modal overlay */
+    .reset-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .reset-overlay.open { display: flex; }
+    .reset-card {
+      background: var(--card-bg, #fff);
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 420px;
+      margin: 16px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(24px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .reset-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-100, #0f172a);
+    }
+    .reset-card p {
+      font-size: 13.5px;
+      color: var(--text-400, #64748b);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .reset-card .form-group { margin-bottom: 14px; }
+    .reset-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text-400, #64748b);
+      line-height: 1;
+      margin-top: -4px;
+      transition: color 0.2s;
+    }
+    .reset-close:hover { color: var(--danger, #ef4444); }
+  </style>
 </head>
 <body class="auth-body">
 
@@ -22,33 +116,75 @@
       </div>
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+          <button type="button" class="eye-btn" onclick="toggleEye('password', this)" aria-label="Show password">
+            👁️
+          </button>
+        </div>
       </div>
+
+      <div class="forgot-link">
+        <a href="#" onclick="openReset(); return false;">Forgot password?</a>
+      </div>
+
       <button type="submit" class="btn-primary auth-submit">Sign In</button>
     </form>
 
     <div class="auth-divider">
       New patient? <a href="register.html">Create an account</a>
     </div>
-
-
-
   </div>
 
   <div id="status-banner" class="banner"></div>
 
+  <!-- ── Forgot / Reset Password Modal ───────────────── -->
+  <div class="reset-overlay" id="reset-overlay">
+    <div class="reset-card">
+      <button class="reset-close" onclick="closeReset()" aria-label="Close">✕</button>
+      <h3>Reset Password</h3>
+      <p>Enter your registered email and choose a new password. Your account must already exist in the system.</p>
+
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="r-email">Email Address</label>
+          <input type="email" id="r-email" placeholder="you@clinic.com" required>
+        </div>
+        <div class="form-group">
+          <label for="r-password">New Password</label>
+          <div class="password-wrap">
+            <input type="password" id="r-password" placeholder="Min. 6 characters" required minlength="6">
+            <button type="button" class="eye-btn" onclick="toggleEye('r-password', this)" aria-label="Show password">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="r-confirm">Confirm New Password</label>
+          <div class="password-wrap">
+            <input type="password" id="r-confirm" placeholder="Repeat new password" required minlength="6">
+            <button type="button" class="eye-btn" onclick="toggleEye('r-confirm', this)" aria-label="Show password">👁️</button>
+          </div>
+        </div>
+        <div class="btn-group" style="margin-top:6px;">
+          <button type="button" class="btn-secondary" onclick="closeReset()">Cancel</button>
+          <button type="submit" class="btn-primary" id="reset-submit-btn" style="flex:1;">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="js/app.js"></script>
   <script>
-    // Redirect if already logged in
+    // ── Redirect if already logged in ──────────────────
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       if (d.success) {
         const r = d.user.role;
-        if (r === 'Admin') window.location.href = 'index.html';
-        else if (r === 'Doctor') window.location.href = 'doctor.html';
-        else window.location.href = 'patient.html';
+        if (r === 'Admin')        window.location.href = 'index.html';
+        else if (r === 'Doctor')  window.location.href = 'doctor.html';
+        else                      window.location.href = 'patient.html';
       }
     }).catch(() => {});
 
+    // ── Login ──────────────────────────────────────────
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email    = document.getElementById('email').value;
@@ -64,14 +200,78 @@
           showNotification('Login successful! Redirecting…');
           setTimeout(() => {
             const role = data.user.role;
-            if (role === 'Admin')   window.location.href = 'index.html';
+            if (role === 'Admin')       window.location.href = 'index.html';
             else if (role === 'Doctor') window.location.href = 'doctor.html';
-            else window.location.href = 'patient.html';
+            else                        window.location.href = 'patient.html';
           }, 800);
         } else {
           showNotification(data.message || 'Invalid credentials.', true);
         }
       } catch (err) { showNotification(err.message, true); }
+    });
+
+    // ── Eye toggle ─────────────────────────────────────
+    function toggleEye(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type  = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    }
+
+    // ── Forgot password modal ──────────────────────────
+    function openReset()  { document.getElementById('reset-overlay').classList.add('open'); }
+    function closeReset() {
+      document.getElementById('reset-overlay').classList.remove('open');
+      document.getElementById('reset-form').reset();
+      // Reset eye toggles back to hidden
+      ['r-password','r-confirm'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.type = 'password';
+      });
+      document.querySelectorAll('#reset-form .eye-btn').forEach(b => b.textContent = '👁️');
+    }
+
+    // Close modal when clicking outside the card
+    document.getElementById('reset-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeReset();
+    });
+
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email      = document.getElementById('r-email').value.trim();
+      const newPass    = document.getElementById('r-password').value;
+      const confirmPass= document.getElementById('r-confirm').value;
+      const btn        = document.getElementById('reset-submit-btn');
+
+      if (newPass !== confirmPass) {
+        showNotification('Passwords do not match.', true);
+        return;
+      }
+      if (newPass.length < 6) {
+        showNotification('Password must be at least 6 characters.', true);
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Updating…';
+
+      try {
+        const res  = await fetch('/api/auth/reset-password', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email, newPassword: newPass })
+        });
+        const data = await res.json();
+        showNotification(data.message, !data.success);
+        if (data.success) {
+          setTimeout(() => closeReset(), 1800);
+        }
+      } catch (err) { showNotification(err.message, true); }
+      finally {
+        btn.disabled    = false;
+        btn.textContent = 'Change Password';
+      }
     });
   </script>
 </body>

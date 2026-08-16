@@ -19,9 +19,21 @@
       opacity: 0;
       margin-top: 0 !important;
       margin-bottom: 0 !important;
-      display: block !important; /* override display:none to allow animation */
+      display: block !important;
       pointer-events: none;
     }
+    /* Eye toggle */
+    .password-wrap { position: relative; display: flex; align-items: center; }
+    .password-wrap input { padding-right: 44px; }
+    .eye-btn {
+      position: absolute; right: 12px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-400, #94a3b8); font-size: 18px;
+      line-height: 1; padding: 4px; display: flex;
+      align-items: center; justify-content: center;
+      transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--primary, #0d9488); }
   </style>
 </head>
 <body class="auth-body">
@@ -59,7 +71,10 @@
         </div>
         <div class="form-group full-span">
           <label for="password">Password</label>
-          <input type="password" id="password" placeholder="Min. 6 characters" required minlength="6">
+          <div class="password-wrap">
+            <input type="password" id="password" placeholder="Min. 6 characters" required minlength="6">
+            <button type="button" class="eye-btn" onclick="toggleEye('password', this)" aria-label="Show password">👁️</button>
+          </div>
         </div>
       </div>
 
@@ -208,6 +223,15 @@
         submitBtn.textContent = labels[role].btn;
       }
     });
+
+    function toggleEye(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type      = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    }
   </script>
+
 </body>
 </html>
