@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen's Clinic EMR — Smart Hospital Management System</title>
+  <meta name="description" content="A modern Electronic Medical Records system for managing patients, doctors, appointments, and bed allocations in a secure, role-based environment.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════
+       RESET & BASE
+    ══════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --primary:       #0d9488;
+      --primary-dark:  #0f766e;
+      --primary-light: rgba(13,148,136,0.12);
+      --primary-glow:  rgba(13,148,136,0.3);
+      --dark:          #0f172a;
+      --dark-2:        #1e293b;
+      --dark-3:        #334155;
+      --text-main:     #f1f5f9;
+      --text-muted:    #94a3b8;
+      --border:        rgba(255,255,255,0.08);
+      --radius:        14px;
+      --radius-lg:     22px;
+      --transition:    all 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ══════════════════════════════════════════
+       NAVBAR
+    ══════════════════════════════════════════ */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 999;
+      padding: 16px 6%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15,23,42,0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .navbar.scrolled {
+      background: rgba(15,23,42,0.97);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .nav-brand .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14.5px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .nav-links a:hover { color: var(--text-main); }
+    .nav-cta {
+      background: var(--primary);
+      color: #fff !important;
+      padding: 9px 22px;
+      border-radius: 999px;
+      font-weight: 600 !important;
+      font-size: 14px !important;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: var(--transition) !important;
+    }
+    .nav-cta:hover {
+      background: var(--primary-dark) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow) !important;
+    }
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .nav-hamburger span {
+      display: block;
+      width: 24px; height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: var(--transition);
+    }
+
+    /* ══════════════════════════════════════════
+       HERO
+    ══════════════════════════════════════════ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 6% 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Gradient background mesh */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(13,148,136,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(13,148,136,0.10) 0%, transparent 60%);
+    }
+    /* Animated floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 400px; height: 400px;
+      background: rgba(13,148,136,0.15);
+      top: -100px; left: -100px;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 300px; height: 300px;
+      background: rgba(13,148,136,0.10);
+      bottom: 0; right: -80px;
+      animation-delay: 3s;
+    }
+    .orb-3 {
+      width: 200px; height: 200px;
+      background: rgba(20,184,166,0.08);
+      top: 40%; left: 10%;
+      animation-delay: 6s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50%       { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .hero-content { position: relative; z-index: 2; max-width: 820px; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      border: 1px solid rgba(13,148,136,0.3);
+      color: var(--primary);
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 28px;
+      letter-spacing: 0.3px;
+    }
+    .hero-badge::before { content: '●'; font-size: 8px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.12;
+      margin-bottom: 24px;
+      letter-spacing: -1.5px;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, #0d9488, #14b8a6, #5eead4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.75;
+      font-weight: 400;
+    }
+    .hero-btns {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-hero-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 999px;
+      font-size: 15.5px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 8px 28px var(--primary-glow);
+      transition: var(--transition);
+    }
+    .btn-hero-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px var(--primary-glow);
+    }
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-main);
+      padding: 14px 32px;
+      border-radius: 999px;
+      font-size: 15.5px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .btn-hero-secondary:hover {
+      background: rgba(255,255,255,0.10);
+      transform: translateY(-2px);
+    }
+
+    /* Hero stats strip */
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 64px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      display: block;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ══════════════════════════════════════════
+       SECTIONS COMMON
+    ══════════════════════════════════════════ */
+    section { padding: 96px 6%; }
+
+    .section-tag {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.8px;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      line-height: 1.75;
+    }
+    .section-header { margin-bottom: 56px; }
+    .section-header.center { text-align: center; }
+    .section-header.center .section-sub { margin: 0 auto; }
+
+    /* ══════════════════════════════════════════
+       SCROLL REVEAL ANIMATION
+    ══════════════════════════════════════════ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-left {
+      opacity: 0;
+      transform: translateX(-50px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right {
+      opacity: 0;
+      transform: translateX(50px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+    /* Stagger delays */
+    .delay-1 { transition-delay: 0.10s; }
+    .delay-2 { transition-delay: 0.20s; }
+    .delay-3 { transition-delay: 0.30s; }
+    .delay-4 { transition-delay: 0.40s; }
+    .delay-5 { transition-delay: 0.50s; }
+
+    /* ══════════════════════════════════════════
+       FEATURES GRID
+    ══════════════════════════════════════════ */
+    .features-section { background: var(--dark); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .feature-card:hover {
+      border-color: rgba(13,148,136,0.3);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.3);
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      width: 52px; height: 52px;
+      background: var(--primary-light);
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(13,148,136,0.2);
+    }
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ══════════════════════════════════════════
+       HOW IT WORKS — ROLES
+    ══════════════════════════════════════════ */
+    .roles-section {
+      background: linear-gradient(180deg, var(--dark) 0%, var(--dark-2) 100%);
+    }
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px;
+    }
+    .role-card {
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      border: 1px solid var(--border);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .role-card.admin   { background: linear-gradient(135deg, rgba(13,148,136,0.12) 0%, rgba(15,23,42,0.8) 100%); }
+    .role-card.doctor  { background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(15,23,42,0.8) 100%); }
+    .role-card.patient { background: linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(15,23,42,0.8) 100%); }
+
+    .role-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 56px rgba(0,0,0,0.35);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .role-emoji {
+      font-size: 40px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .role-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .role-card .role-sub {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .role-card.admin   .role-sub { background: rgba(13,148,136,0.2); color: #5eead4; }
+    .role-card.doctor  .role-sub { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .role-card.patient .role-sub { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+
+    .role-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .role-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .role-list li::before {
+      content: '✓';
+      color: var(--primary);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ══════════════════════════════════════════
+       WORKFLOW / PROCESS
+    ══════════════════════════════════════════ */
+    .workflow-section { background: var(--dark-2); }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      position: relative;
+    }
+    .workflow-steps::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      opacity: 0.4;
+    }
+    .step-card {
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      text-align: center;
+      transition: var(--transition);
+      position: relative;
+    }
+    .step-card:hover {
+      border-color: rgba(13,148,136,0.35);
+      transform: translateY(-4px);
+    }
+    .step-number {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      box-shadow: 0 6px 18px var(--primary-glow);
+    }
+    .step-card h4 {
+      font-size: 15.5px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .step-card p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ══════════════════════════════════════════
+       TECH STACK
+    ══════════════════════════════════════════ */
+    .tech-section { background: var(--dark); }
+    .tech-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+    .tech-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .tech-pill:hover {
+      border-color: rgba(13,148,136,0.4);
+      color: var(--text-main);
+      background: var(--primary-light);
+    }
+    .tech-pill .icon { font-size: 18px; }
+
+    /* ══════════════════════════════════════════
+       CTA SECTION
+    ══════════════════════════════════════════ */
+    .cta-section {
+      background: var(--dark-2);
+      text-align: center;
+    }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(20,184,166,0.06) 100%);
+      border: 1px solid rgba(13,148,136,0.25);
+      border-radius: 24px;
+      padding: 72px 40px;
+      max-width: 720px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(13,148,136,0.15), transparent 70%);
+      pointer-events: none;
+    }
+    .cta-box h2 {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      letter-spacing: -0.6px;
+    }
+    .cta-box p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+    .cta-btns {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ══════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════ */
+    footer {
+      background: #0a0f1e;
+      padding: 40px 6%;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .footer-brand .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+    .footer-text {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      transition: var(--transition);
+    }
+    .footer-links a:hover { color: var(--primary); }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 65px; left: 0; right: 0;
+        background: rgba(10,15,30,0.98);
+        padding: 24px 6%;
+        border-bottom: 1px solid var(--border);
+        gap: 18px;
+      }
+      .nav-hamburger { display: flex; }
+      .workflow-steps::before { display: none; }
+      section { padding: 64px 5%; }
+      .hero { padding: 100px 5% 60px; }
+      .hero-stats { gap: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══════════════════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <a href="index-landing.html" class="nav-brand">
+    <div class="logo-icon">🏥</div>
+    Citizen's Clinic EMR
+  </a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#roles">Who Uses It</a></li>
+    <li><a href="#workflow">Workflow</a></li>
+    <li><a href="#tech">Technology</a></li>
+    <li><a href="login.html" class="nav-cta">Sign In →</a></li>
+  </ul>
+  <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ══ HERO ════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Final Year Project · Computer Science</div>
+    <h1>
+      Modern <span class="accent">Electronic Medical</span><br>
+      Records System
+    </h1>
+    <p>
+      A secure, role-based hospital management platform that digitises
+      patient records, appointment scheduling, bed allocation, and clinical
+      workflows — all in one place.
+    </p>
+    <div class="hero-btns">
+      <a href="login.html" class="btn-hero-primary">Get Started →</a>
+      <a href="register.html" class="btn-hero-secondary">Create Account</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-number">3</span>
+        <span class="stat-label">User Roles</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">100%</span>
+        <span class="stat-label">Web Based</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">EMR</span>
+        <span class="stat-label">Driven Records</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">Real‑time</span>
+        <span class="stat-label">Bed Tracking</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURES ════════════════════════════════════════ -->
+<section class="features-section" id="features">
+  <div class="section-header center reveal">
+    <span class="section-tag">Core Features</span>
+    <h2 class="section-title">Everything a Clinic Needs</h2>
+    <p class="section-sub">Built to handle the full lifecycle of a hospital visit — from patient registration to discharge.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal delay-1">
+      <div class="feature-icon">📋</div>
+      <h3>Electronic Medical Records</h3>
+      <p>Full patient health charts with consultation history, prescriptions, allergies, and active health problems — all in one profile.</p>
+    </div>
+    <div class="feature-card reveal delay-2">
+      <div class="feature-icon">📅</div>
+      <h3>Smart Appointment Booking</h3>
+      <p>Patients submit appointment requests. Admin reviews, assigns a doctor, and schedules the date and time — reducing booking errors.</p>
+    </div>
+    <div class="feature-card reveal delay-3">
+      <div class="feature-icon">🛏️</div>
+      <h3>Real-Time Bed Management</h3>
+      <p>Track ward bed availability across all rooms. Doctors and Admins can allocate and discharge patients directly from the EMR profile.</p>
+    </div>
+    <div class="feature-card reveal delay-4">
+      <div class="feature-icon">👨‍⚕️</div>
+      <h3>Doctor Management</h3>
+      <p>Maintain a full doctor roster with specialisation and experience. Admins can add, edit, or deactivate doctors from the dashboard.</p>
+    </div>
+    <div class="feature-card reveal delay-1">
+      <div class="feature-icon">💊</div>
+      <h3>Prescriptions & Consultations</h3>
+      <p>Doctors log diagnoses, treatments, and issue prescriptions directly into the patient record during or after consultation.</p>
+    </div>
+    <div class="feature-card reveal delay-2">
+      <div class="feature-icon">🔐</div>
+      <h3>Role-Based Access Control</h3>
+      <p>Three distinct roles — Admin, Doctor, Patient — each with their own dashboard, permissions, and restricted data views.</p>
+    </div>
+    <div class="feature-card reveal delay-3">
+      <div class="feature-icon">🌙</div>
+      <h3>Dark / Light Mode</h3>
+      <p>Fully themed interface with smooth dark and light mode toggle, preserving preference across sessions.</p>
+    </div>
+    <div class="feature-card reveal delay-4">
+      <div class="feature-icon">📊</div>
+      <h3>Admin Command Center</h3>
+      <p>Live metrics for total doctors, patients, bed occupancy, and pending appointments — all visible at a glance.</p>
+    </div>
+    <div class="feature-card reveal delay-1">
+      <div class="feature-icon">🏨</div>
+      <h3>Ward & Room Setup</h3>
+      <p>Admins can create wards, rooms, and define bed counts. Beds are auto-labelled and immediately tracked in the system.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ROLES ════════════════════════════════════════════ -->
+<section class="roles-section" id="roles">
+  <div class="section-header center reveal">
+    <span class="section-tag">Who Uses It</span>
+    <h2 class="section-title">Three Roles, One Platform</h2>
+    <p class="section-sub">Each user role has a dedicated portal tailored to their daily responsibilities.</p>
+  </div>
+
+  <div class="roles-grid">
+    <div class="role-card admin reveal-left delay-1">
+      <span class="role-emoji">🧑‍💼</span>
+      <h3>Administrator</h3>
+      <div class="role-sub">Full System Access</div>
+      <ul class="role-list">
+        <li>Manage the complete doctor roster</li>
+        <li>Register and manage patient accounts</li>
+        <li>Review appointment requests and assign doctors</li>
+        <li>Schedule appointment dates and times</li>
+        <li>Configure wards, rooms, and beds</li>
+        <li>Allocate beds to admitted patients</li>
+        <li>View clinic-wide statistics and metrics</li>
+      </ul>
+    </div>
+    <div class="role-card doctor reveal delay-2">
+      <span class="role-emoji">👨‍⚕️</span>
+      <h3>Doctor</h3>
+      <div class="role-sub">Clinical Access</div>
+      <ul class="role-list">
+        <li>View all assigned appointments</li>
+        <li>Approve, complete, or reject appointments</li>
+        <li>Access full patient EMR records</li>
+        <li>Log consultation notes and diagnoses</li>
+        <li>Issue prescriptions and log allergies</li>
+        <li>Allocate beds when patient needs admission</li>
+        <li>Discharge patients from beds</li>
+      </ul>
+    </div>
+    <div class="role-card patient reveal-right delay-3">
+      <span class="role-emoji">🧑‍🤝‍🧑</span>
+      <h3>Patient</h3>
+      <div class="role-sub">Personal Portal</div>
+      <ul class="role-list">
+        <li>Self-register and create an account</li>
+        <li>Submit appointment requests</li>
+        <li>View assigned doctor and schedule</li>
+        <li>Track appointment status in real time</li>
+        <li>View personal EMR — consultations, prescriptions</li>
+        <li>See current bed allocation details</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══ WORKFLOW ══════════════════════════════════════════ -->
+<section class="workflow-section" id="workflow">
+  <div class="section-header center reveal">
+    <span class="section-tag">Appointment Workflow</span>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">A clear, structured process from patient request to doctor consultation.</p>
+  </div>
+
+  <div class="workflow-steps">
+    <div class="step-card reveal delay-1">
+      <div class="step-number">1</div>
+      <h4>Patient Registers</h4>
+      <p>Patient creates an account and logs into their personal portal.</p>
+    </div>
+    <div class="step-card reveal delay-2">
+      <div class="step-number">2</div>
+      <h4>Appointment Request</h4>
+      <p>Patient submits a request describing their symptoms and appointment type.</p>
+    </div>
+    <div class="step-card reveal delay-3">
+      <div class="step-number">3</div>
+      <h4>Admin Reviews</h4>
+      <p>Admin reads the request, assigns the right doctor, and sets the date and time.</p>
+    </div>
+    <div class="step-card reveal delay-4">
+      <div class="step-number">4</div>
+      <h4>Doctor Consults</h4>
+      <p>Doctor sees the scheduled appointment, opens the EMR, and begins the consultation.</p>
+    </div>
+    <div class="step-card reveal delay-5">
+      <div class="step-number">5</div>
+      <h4>Record Updated</h4>
+      <p>Diagnosis, prescriptions, and treatment are logged into the patient's permanent record.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TECH STACK ════════════════════════════════════════ -->
+<section class="tech-section" id="tech">
+  <div class="section-header center reveal">
+    <span class="section-tag">Technology Stack</span>
+    <h2 class="section-title">Built With Modern Tools</h2>
+    <p class="section-sub">A clean, production-ready stack built entirely without heavy frameworks — keeping it simple, fast, and understandable.</p>
+  </div>
+
+  <div class="tech-grid reveal">
+    <div class="tech-pill"><span class="icon">🟨</span> JavaScript (ES6+)</div>
+    <div class="tech-pill"><span class="icon">🟩</span> Node.js</div>
+    <div class="tech-pill"><span class="icon">⚡</span> Express.js</div>
+    <div class="tech-pill"><span class="icon">🐘</span> PostgreSQL</div>
+    <div class="tech-pill"><span class="icon">🔐</span> bcrypt + Sessions</div>
+    <div class="tech-pill"><span class="icon">🌐</span> Vanilla HTML & CSS</div>
+    <div class="tech-pill"><span class="icon">📦</span> npm</div>
+    <div class="tech-pill"><span class="icon">🐙</span> GitHub</div>
+  </div>
+</section>
+
+<!-- ══ CTA ════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-box reveal">
+    <h2>Ready to Explore the System?</h2>
+    <p>Sign in with your credentials or register as a new patient to experience the full Citizen's Clinic EMR platform.</p>
+    <div class="cta-btns">
+      <a href="login.html" class="btn-hero-primary">Sign In to Dashboard →</a>
+      <a href="register.html" class="btn-hero-secondary">Register as Patient</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer>
+  <div class="footer-brand">
+    <div class="logo-icon">🏥</div>
+    Citizen's Clinic EMR
+  </div>
+  <p class="footer-text">
+    A Final Year Project — Electronic Medical Records System<br>
+    Built with Node.js · Express · PostgreSQL · Vanilla JS
+  </p>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#roles">Roles</a>
+    <a href="#workflow">Workflow</a>
+    <a href="login.html">Sign In</a>
+    <a href="register.html">Register</a>
+  </div>
+</footer>
+
+<script>
+  // ── Navbar scroll effect ──────────────────────────────
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // ── Mobile nav toggle ─────────────────────────────────
+  function toggleNav() {
+    document.getElementById('nav-links').classList.toggle('open');
+  }
+  // Close nav on link click
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.getElementById('nav-links').classList.remove('open');
+    });
+  });
+
+  // ── Scroll reveal (IntersectionObserver) ──────────────
+  const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+  const observer  = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target); // animate once
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  revealEls.forEach(el => observer.observe(el));
+
+  // ── Animated counter for hero stats ──────────────────
+  function animateCounter(el, target, suffix = '') {
+    let current = 0;
+    const step  = Math.ceil(target / 40);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 40);
+  }
+</script>
+</body>
+</html>
